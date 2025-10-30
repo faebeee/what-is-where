@@ -20,7 +20,6 @@ export const Places: FC<PlacesProps> = ({ location, search, show }) => {
 
     placesService.nearbySearch({
       location: location,
-      // radius: 1000,
       keyword: search,
       rankBy: google.maps.places.RankBy.DISTANCE
     }, (val) => {
