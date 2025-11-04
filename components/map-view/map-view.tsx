@@ -5,10 +5,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { MapProvider } from '@/lib/context/map-context';
 import { useLocalStorage } from '@uidotdev/usehooks';
 import { Map, Marker, useMap } from '@vis.gl/react-google-maps';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Fragment, useEffect, useState } from 'react';
 import { Places } from '../places';
 import { Label } from '../ui/label';
-
 
 export type Point = {
   coordinates: [number, number];
@@ -115,10 +115,13 @@ export const POILayers: POILayersGroup[] = [
 ];
 
 export const MapView = () => {
-  const [currentLocation, setCurrentLocation] = useLocalStorage<google.maps.LatLngLiteral | null>('location', null);
+  const [currentLocation, setCurrentLocation] = useState<google.maps.LatLngLiteral | null>(null);
   const map = useMap();
+  const router = useRouter();
   const [maxResults, setMaxResults] = useState(3);
   const [layers, setLayers] = useLocalStorage<string[]>('layers', []);
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!currentLocation) {
@@ -126,16 +129,26 @@ export const MapView = () => {
     }
     map?.setCenter(currentLocation);
     map?.setZoom(15);
+  }, [currentLocation, map]);
+
+  useEffect(() => {
+    if (!currentLocation) {
+      return;
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('lat', currentLocation.lat.toString());
+    params.set('lng', currentLocation.lng.toString());
+
+    router.replace(pathname + '?' + params.toString());
   }, [currentLocation]);
 
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        if (!currentLocation) {
-          setCurrentLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
-        }
-      });
+    if (!searchParams.get('lng') || !searchParams.get('lng')) {
+      return;
     }
+    const lat = parseFloat(searchParams.get('lat')!);
+    const lng = parseFloat(searchParams.get('lng')!);
+    setCurrentLocation({ lat, lng });
   }, []);
 
   const toggleLayer = (layer: string) => {
@@ -146,6 +159,13 @@ export const MapView = () => {
     }
   };
 
+  const onDragEnd = (e: google.maps.MapMouseEvent) => {
+    if (!e.latLng) {
+      return;
+    }
+    setCurrentLocation({ lat: e.latLng?.lat(), lng: e.latLng?.lng() });
+  };
+
   return <div className={'flex flex-row h-[100vh]'}>
     <MapProvider value={{ location: currentLocation, maxResults, setMaxResults }}>
       {currentLocation && <Map
@@ -154,13 +174,13 @@ export const MapView = () => {
         defaultCenter={currentLocation}
         defaultZoom={15}
       >
-        <Marker position={currentLocation} title={'You'}/>
         {POILayers.map((group) => (<>
           {group.layers.map((layer) => (<>
             {currentLocation &&
               <Places show={layers.includes(layer.id)} location={currentLocation} search={layer.keyword}/>}
           </>))}
         </>))}
+        <Marker draggable onDragEnd={onDragEnd} position={currentLocation} title={'You'}/>
       </Map>}
 
       <div className={'w-[420px] p-5 flex flex-col gap-5'}>
