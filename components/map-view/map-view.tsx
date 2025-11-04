@@ -168,11 +168,11 @@ export const MapView = () => {
 
   return <div className={'flex flex-row h-[100vh]'}>
     <MapProvider value={{ location: currentLocation, maxResults, setMaxResults }}>
-      {currentLocation && <Map
+      <Map
         mapId={'test'}
         className={'flex-grow'}
-        defaultCenter={currentLocation}
-        defaultZoom={15}
+        defaultCenter={{ lat: 47.37888233260039, lng: 8.53744498316057 }}
+        defaultZoom={12}
       >
         {POILayers.map((group) => (<>
           {group.layers.map((layer) => (<>
@@ -181,7 +181,7 @@ export const MapView = () => {
           </>))}
         </>))}
         <Marker draggable onDragEnd={onDragEnd} position={currentLocation} title={'You'}/>
-      </Map>}
+      </Map>
 
       <div className={'w-[420px] p-5 flex flex-col gap-5'}>
         <div>
